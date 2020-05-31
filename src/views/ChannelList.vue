@@ -53,7 +53,14 @@
             <v-card-title>
               <v-list-item class="pl-0">
                 <v-list-item-avatar color="grey" size="80">
-                  <v-img :src="channel.img" />
+                  <router-link
+                    :to="{
+                      name: 'Channel',
+                      params: { id: channel.id }
+                    }"
+                  >
+                    <v-img :src="channel.img" />
+                  </router-link>
                 </v-list-item-avatar>
                 <v-list-item-content>
                   <v-list-item-title>{{ channel.title }}</v-list-item-title>
