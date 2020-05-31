@@ -7,7 +7,10 @@ export const state = () => ({
 })
 
 export const getters = {
-  channels: (state) => state.channels
+  channels: (state) => state.channels,
+  channelById: (state) => (id) => {
+    return state.channels.find((channel) => channel.id === id)
+  }
 }
 
 export const mutations = {
