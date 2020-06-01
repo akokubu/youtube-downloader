@@ -1,19 +1,38 @@
 <template>
   <div class="channel">
-    <h1>This is a {{ id }} channel page</h1>
     <ChannelItem :channel="channel"></ChannelItem>
 
     <v-list subheader>
       <v-subheader>videos</v-subheader>
 
       <v-list-item v-for="video in videos" :key="video.id">
-        <v-list-item-content>
-          <v-img :src="video.thumbnail" max-width="200" class="mx=0" />
-        </v-list-item-content>
-
-        <v-list-item-content class="mx=0">
-          <v-list-item-title v-text="video.title"></v-list-item-title>
-        </v-list-item-content>
+        <v-row>
+          <v-col cols="auto">
+            <v-img :src="video.thumbnail" max-width="350" />
+          </v-col>
+          <v-col>
+            <v-card flat class="mt-3">
+              <v-card-title>
+                {{ video.title }}
+              </v-card-title>
+              <v-card-actions>
+                <v-btn @click="downloadMp3" color="red" icon>
+                  <v-icon>mdi-music-note</v-icon>
+                </v-btn>
+                <v-btn color="green" icon>
+                  <v-icon>mdi-video</v-icon>
+                </v-btn>
+                <v-btn color="pink" icon>
+                  <v-icon>mdi-heart-outline</v-icon>
+                </v-btn>
+                <v-spacer></v-spacer>
+                <span class="body-2 font-weight-light">{{
+                  video.publishedAt
+                }}</span>
+              </v-card-actions>
+            </v-card>
+          </v-col>
+        </v-row>
       </v-list-item>
     </v-list>
   </div>
@@ -105,6 +124,9 @@ export default {
         }
         self.searchVideos(channelId, lastUpdate, next)
       })
+    },
+    downloadMp3() {
+      console.log('downloadMp3')
     }
   }
 }

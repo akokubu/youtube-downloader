@@ -31,9 +31,10 @@
           </v-list-item-avatar>
           <v-list-item-content>
             <v-list-item-title>{{ channel.title }}</v-list-item-title>
-            <v-list-item-subtitle class="font-weight-light">{{
-              channel.channel_id
-            }}</v-list-item-subtitle>
+            <v-list-item-subtitle class="font-weight-light"
+              >{{ channel.channel_id }} -
+              {{ channel.lastUpdated }}</v-list-item-subtitle
+            >
           </v-list-item-content>
           <v-list-item-action>
             <v-icon @click.stop="deleteConfirm(channel.id)">mdi-delete</v-icon>
