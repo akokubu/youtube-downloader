@@ -14,7 +14,7 @@ export const mutations = {
   SET_CHANNELS: (state, payload) => {
     state.channels = payload
   },
-  SET_CHANNEL: (state, payload) => {
+  ADD_CHANNEL: (state, payload) => {
     state.channels.push(payload)
   },
   DELETE_CHANNEL: (state, id) => {
@@ -68,7 +68,7 @@ export const actions = {
         .add({
           ...channel
         })
-      commit('SET_CHANNEL', channel)
+      commit('ADD_CHANNEL', channel)
     })
   },
   deleteChannel({ commit }, id) {
