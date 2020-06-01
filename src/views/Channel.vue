@@ -1,14 +1,18 @@
 <template>
   <div class="channel">
     <ChannelItem :channel="channel"></ChannelItem>
-
-    <v-list subheader>
-      <v-subheader>videos</v-subheader>
-
+    <!-- <p>{{ progress }}</p>
+    <p>{{ status }}</p> -->
+    <v-list>
       <v-list-item v-for="video in videos" :key="video.id">
-        <v-row>
+        <v-row :class="{ 'light-green': video.downloaded }">
           <v-col cols="auto">
-            <v-img :src="video.thumbnail" max-width="350" />
+            <v-img
+              class="video-img"
+              :src="video.thumbnail"
+              max-width="350"
+              @click="watchVideo(video.id)"
+            />
           </v-col>
           <v-col>
             <v-card flat class="mt-3">
@@ -16,10 +20,10 @@
                 {{ video.title }}
               </v-card-title>
               <v-card-actions>
-                <v-btn @click="downloadMp3" color="red" icon>
+                <v-btn @click="download('mp3', video)" color="red" icon>
                   <v-icon>mdi-music-note</v-icon>
                 </v-btn>
-                <v-btn color="green" icon>
+                <v-btn @click="download('mp4', video)" color="green" icon>
                   <v-icon>mdi-video</v-icon>
                 </v-btn>
                 <v-btn color="pink" icon>
@@ -39,7 +43,11 @@
 </template>
 
 <script>
+import { shell } from 'electron'
 import ChannelItem from '@/components/ChannelItem.vue'
+import fs from 'fs'
+import ytdl from 'ytdl-core'
+import ffmpeg from 'fluent-ffmpeg'
 
 const { google } = require('googleapis')
 const youtube = google.youtube({
@@ -53,7 +61,9 @@ export default {
       channel: {
         id: ''
       },
-      videos: []
+      videos: [],
+      progress: {},
+      status: ''
     }
   },
   components: {
@@ -89,6 +99,9 @@ export default {
       })
   },
   methods: {
+    watchVideo: function (videoId) {
+      shell.openExternal('https://www.youtube.com/watch?v=' + videoId)
+    },
     searchVideos: async function (channelId, lastUpdate, nextPageToken) {
       const params = {
         part: 'snippet',
@@ -125,11 +138,60 @@ export default {
         self.searchVideos(channelId, lastUpdate, next)
       })
     },
-    downloadMp3() {
+    download(format, video) {
+      this.status = 'downloading'
+      const BASE_PATH = `https://www.youtube.com/watch?v=`
+      const url = BASE_PATH + video.id
       console.log('downloadMp3')
+      const saveDir = '/Users/akokubu/Dropbox/Youtube'
+      var mp4SavePath
+
+      if (format === 'mp3') {
+        mp4SavePath = '/tmp/' + video.id + '.mp4'
+      } else {
+        mp4SavePath = saveDir + '/' + video.title.replace(/\//g, '_') + '.mp4'
+      }
+
+      const mp4Video = ytdl(url)
+      mp4Video.pipe(fs.createWriteStream(mp4SavePath))
+      mp4Video.on('progress', (chunkLength, downloaded, total) => {
+        this.progress = parseInt((downloaded / total) * 100)
+      })
+      mp4Video.on('end', () => {
+        // convert mp3
+        if (format === 'mp3') {
+          this.status = 'converting'
+          this.progress = 0
+
+          ffmpeg.setFfmpegPath('/usr/local/bin/ffmpeg')
+          const proc = ffmpeg({ source: mp4SavePath })
+          var savePath =
+            saveDir + '/' + video.title.replace(/\//g, '_') + '.mp3'
+          proc.format('mp3').audioBitrate(128)
+          proc.on('progress', (progress) => {
+            this.progress = parseInt(progress.percent)
+          })
+          proc.on('end', () => {
+            this.status = ''
+            this.progress = 0
+            this.$set(video, 'downloaded', true)
+            // this.$emit('video-downloaded', this.video)
+          })
+          proc.output(savePath).run()
+        } else {
+          this.status = ''
+          this.progress = 0
+          this.$set(video, 'downloaded', true)
+          // this.$emit('video-downloaded', this.video)
+        }
+      })
     }
   }
 }
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.video-img {
+  cursor: pointer;
+}
+</style>
