@@ -44,6 +44,9 @@
                 >
               </template>
               <v-spacer></v-spacer>
+              <span class="body-2 mr-5" @click="toggleDownload">
+                済
+              </span>
               <span class="body-2 font-weight-light">{{
                 video.publishedAt
               }}</span>
@@ -83,6 +86,13 @@ export default {
   methods: {
     watchVideo: function (videoId) {
       shell.openExternal('https://www.youtube.com/watch?v=' + videoId)
+    },
+    toggleDownload() {
+      if (this.downloaded) {
+        this.$emit('deleteDownloaded')
+      } else {
+        this.$emit('downloadedVideo')
+      }
     },
     download(format, video) {
       this.format = format

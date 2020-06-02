@@ -33,6 +33,11 @@ export const mutations = {
     if (!state.channel.downloaded.includes(payload.video_id)) {
       state.channel.downloaded.push(payload.video_id)
     }
+  },
+  REMOVE_DOWNLOADED: (state, payload) => {
+    state.channel.downloaded = state.channel.downloaded.filter(
+      (id) => id !== payload.video_id
+    )
   }
 }
 const { google } = require('googleapis')
@@ -175,5 +180,15 @@ export const actions = {
         downloaded: firebase.firestore.FieldValue.arrayUnion(payload.video_id)
       })
     commit('ADD_DOWNLOADED', payload)
+  },
+  deleteDownloaded({ commit }, payload) {
+    firebase
+      .firestore()
+      .collection('channels')
+      .doc(payload.channel_id)
+      .update({
+        downloaded: firebase.firestore.FieldValue.arrayRemove(payload.video_id)
+      })
+    commit('REMOVE_DOWNLOADED', payload)
   }
 }

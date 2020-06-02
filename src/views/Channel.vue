@@ -7,6 +7,7 @@
         :key="video.id"
         :video="video"
         :downloaded="downloaded(video.id)"
+        @deleteDownloaded="deleteDownloaded(video.id)"
         @downloadedVideo="downloadedVideo(video.id)"
       ></Video>
     </v-list>
@@ -34,8 +35,13 @@ export default {
   },
   methods: {
     downloadedVideo(video_id) {
-      console.log('downloadedVideo')
       this.$store.dispatch('channel/downloaded', {
+        channel_id: this.channel.id,
+        video_id: video_id
+      })
+    },
+    deleteDownloaded(video_id) {
+      this.$store.dispatch('channel/deleteDownloaded', {
         channel_id: this.channel.id,
         video_id: video_id
       })
