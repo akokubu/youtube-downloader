@@ -33,7 +33,7 @@
             <v-list-item-title>{{ channel.title }}</v-list-item-title>
             <v-list-item-subtitle class="font-weight-light"
               >{{ channel.channel_id }} -
-              {{ channel.lastUpdated }}</v-list-item-subtitle
+              {{ channel.last_updated }}</v-list-item-subtitle
             >
           </v-list-item-content>
           <v-list-item-action>

@@ -1,11 +1,9 @@
 <template>
   <div class="channel">
     <ChannelItem :channel="channel"></ChannelItem>
-    <!-- <p>{{ progress }}</p>
-    <p>{{ status }}</p> -->
     <v-list>
-      <v-list-item v-for="video in videos" :key="video.id">
-        <v-row :class="{ 'light-green': video.downloaded }">
+      <v-list-item v-for="video in channel.videos" :key="video.id">
+        <v-row :class="{ 'light-green': downloaded(video.id) }">
           <v-col cols="auto">
             <v-img
               class="video-img"
@@ -49,23 +47,8 @@ import fs from 'fs'
 import ytdl from 'ytdl-core'
 import ffmpeg from 'fluent-ffmpeg'
 
-const { google } = require('googleapis')
-const youtube = google.youtube({
-  version: 'v3',
-  auth: process.env.VUE_APP_AUTH_KEY
-})
-import firebase from '@/firebase/firebase.js'
+import { mapState } from 'vuex'
 export default {
-  data() {
-    return {
-      channel: {
-        id: ''
-      },
-      videos: [],
-      progress: {},
-      status: ''
-    }
-  },
   components: {
     ChannelItem
   },
@@ -76,73 +59,16 @@ export default {
     }
   },
   created() {
-    firebase
-      .firestore()
-      .collection('channels')
-      .doc(this.id)
-      .get()
-      .then((snapshot) => {
-        const channel = {
-          id: snapshot.id,
-          ...snapshot.data()
-        }
-        this.channel = channel
-
-        let lastUpdate = null
-        if (this.channel.lastUpdated) {
-          const dt = new Date(this.channel.lastUpdated)
-          dt.setSeconds(dt.getSeconds() + 1)
-          lastUpdate = dt.toISOString().split('.')[0] + 'Z'
-        }
-
-        this.searchVideos(this.channel.channel_id, lastUpdate)
-      })
+    this.$store.dispatch('channel/fetchChannel', this.id)
   },
   methods: {
     watchVideo: function (videoId) {
       shell.openExternal('https://www.youtube.com/watch?v=' + videoId)
     },
-    searchVideos: async function (channelId, lastUpdate, nextPageToken) {
-      const params = {
-        part: 'snippet',
-        channelId: channelId,
-        maxResults: 50,
-        type: 'video',
-        order: 'date'
-      }
-      if (nextPageToken) {
-        params['pageToken'] = nextPageToken
-      }
-      if (lastUpdate) {
-        params['publishedAfter'] = lastUpdate
-      }
-      var self = this
-      await youtube.search.list(params).then((response) => {
-        console.log(response)
-        response.data.items.forEach(function (video) {
-          if (!self.videos.find((item) => item.id === video.id.videoId)) {
-            self.videos.push({
-              channelId: channelId,
-              id: video.id.videoId,
-              title: video.snippet.title,
-              despcription: video.snippet.description,
-              publishedAt: video.snippet.publishedAt,
-              thumbnail: video.snippet.thumbnails.medium.url
-            })
-          }
-        })
-        const next = response.data.nextPageToken
-        if (!next) {
-          return
-        }
-        self.searchVideos(channelId, lastUpdate, next)
-      })
-    },
     download(format, video) {
       this.status = 'downloading'
       const BASE_PATH = `https://www.youtube.com/watch?v=`
       const url = BASE_PATH + video.id
-      console.log('downloadMp3')
       const saveDir = '/Users/akokubu/Dropbox/Youtube'
       var mp4SavePath
 
@@ -172,20 +98,30 @@ export default {
             this.progress = parseInt(progress.percent)
           })
           proc.on('end', () => {
-            this.status = ''
-            this.progress = 0
-            this.$set(video, 'downloaded', true)
-            // this.$emit('video-downloaded', this.video)
+            // this.status = ''
+            // this.progress = 0
+            this.$store.dispatch('channel/downloaded', {
+              channel_id: this.channel.id,
+              video_id: video.id
+            })
           })
           proc.output(savePath).run()
         } else {
-          this.status = ''
-          this.progress = 0
-          this.$set(video, 'downloaded', true)
-          // this.$emit('video-downloaded', this.video)
+          // this.status = ''
+          // this.progress = 0
+          this.$store.dispatch('channel/downloaded', {
+            channel_id: this.channel.id,
+            video_id: video.id
+          })
         }
       })
     }
+  },
+  computed: {
+    downloaded() {
+      return (video_id) => this.channel.downloaded.includes(video_id)
+    },
+    ...mapState('channel', ['channel'])
   }
 }
 </script>
