@@ -16,15 +16,33 @@
               {{ video.title }}
             </v-card-title>
             <v-card-actions>
-              <v-btn @click="download('mp3', video)" color="red" icon>
-                <v-icon>mdi-music-note</v-icon>
-              </v-btn>
-              <v-btn @click="download('mp4', video)" color="green" icon>
-                <v-icon>mdi-video</v-icon>
-              </v-btn>
-              <v-btn color="pink" icon>
-                <v-icon>mdi-heart-outline</v-icon>
-              </v-btn>
+              <template v-if="status === ''">
+                <v-btn @click="download('mp3', video)" color="red" icon>
+                  <v-icon>mdi-music-note</v-icon>
+                </v-btn>
+                <v-btn @click="download('mp4', video)" color="green" icon>
+                  <v-icon>mdi-video</v-icon>
+                </v-btn>
+              </template>
+              <template v-else>
+                <v-progress-circular
+                  rotate="-90"
+                  size="40"
+                  :value="progress_download"
+                  width="3"
+                  color="light-green"
+                  >{{ progress_download }}</v-progress-circular
+                >
+                <v-progress-circular
+                  v-if="format === 'mp3'"
+                  rotate="-90"
+                  size="40"
+                  :value="progress_convert"
+                  width="3"
+                  color="pink"
+                  >{{ progress_convert }}</v-progress-circular
+                >
+              </template>
               <v-spacer></v-spacer>
               <span class="body-2 font-weight-light">{{
                 video.publishedAt
@@ -47,7 +65,9 @@ export default {
   data() {
     return {
       status: '',
-      progress: 0
+      format: '',
+      progress_download: 0,
+      progress_convert: 0
     }
   },
   props: {
@@ -65,6 +85,9 @@ export default {
       shell.openExternal('https://www.youtube.com/watch?v=' + videoId)
     },
     download(format, video) {
+      this.format = format
+      this.progress_download = 0
+      this.progress_convert = 0
       this.status = 'downloading'
       const BASE_PATH = `https://www.youtube.com/watch?v=`
       const url = BASE_PATH + video.id
@@ -80,13 +103,13 @@ export default {
       const mp4Video = ytdl(url)
       mp4Video.pipe(fs.createWriteStream(mp4SavePath))
       mp4Video.on('progress', (chunkLength, downloaded, total) => {
-        this.progress = parseInt((downloaded / total) * 100)
+        this.progress_download = parseInt((downloaded / total) * 100)
       })
       mp4Video.on('end', () => {
         // convert mp3
         if (format === 'mp3') {
           this.status = 'converting'
-          this.progress = 0
+          this.progress_convert = 0
 
           ffmpeg.setFfmpegPath('/usr/local/bin/ffmpeg')
           const proc = ffmpeg({ source: mp4SavePath })
@@ -94,17 +117,15 @@ export default {
             saveDir + '/' + video.title.replace(/\//g, '_') + '.mp3'
           proc.format('mp3').audioBitrate(128)
           proc.on('progress', (progress) => {
-            this.progress = parseInt(progress.percent)
+            this.progress_convert = parseInt(progress.percent)
           })
           proc.on('end', () => {
             this.status = ''
-            this.progress = 0
             this.$emit('downloadedVideo')
           })
           proc.output(savePath).run()
         } else {
           this.status = ''
-          this.progress = 0
           this.$emit('downloadedVideo')
         }
       })
