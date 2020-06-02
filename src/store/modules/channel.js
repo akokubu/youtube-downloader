@@ -23,6 +23,11 @@ export const mutations = {
   SET_CHANNEL: (state, payload) => {
     state.channel = payload
   },
+  LAST_UPDATED: (state, payload) => {
+    state.channel.downloaded = []
+    state.channel.last_updated = payload
+    state.channel.videos = []
+  },
   ADD_VIDEOS: (state, payload) => {
     state.channel.videos = payload
   },
@@ -135,7 +140,9 @@ export const actions = {
           channel.downloaded = []
         }
         commit('SET_CHANNEL', channel)
-
+        return channel
+      })
+      .then((channel) => {
         let last_update = null
         if (channel.last_updated) {
           const dt = new Date(channel.last_updated)
@@ -143,11 +150,40 @@ export const actions = {
           last_update = dt.toISOString().split('.')[0] + 'Z'
         }
 
-        searchVideos(state, channel.channel_id, last_update).then(
+        return searchVideos(state, channel.channel_id, last_update).then(
           (response) => {
             commit('ADD_VIDEOS', response)
+            return response
           }
         )
+      })
+      .then((videos) => {
+        if (videos.length === 0) {
+          return
+        }
+        const downloaded = state.channel.downloaded
+        const undownloaded = videos.filter(
+          (video) => !downloaded.includes(video.id)
+        )
+        if (undownloaded.length === 0) {
+          const maxPublishedAt = new Date(
+            Math.max.apply(
+              null,
+              videos.map((video) => new Date(video.publishedAt))
+            )
+          )
+          const last_updated = maxPublishedAt.toISOString().split('.')[0] + 'Z'
+
+          firebase
+            .firestore()
+            .collection('channels')
+            .doc(state.channel.id)
+            .update({
+              downloaded: [],
+              last_updated: last_updated
+            })
+          commit('LAST_UPDATED', last_updated)
+        }
       })
   },
   addChannel({ commit }, payload) {
